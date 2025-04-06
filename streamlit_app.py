@@ -1,45 +1,45 @@
 import streamlit as st
 from PIL import Image
-import pytesseract
-import re
 import joblib
+import easyocr
+import numpy as np
 
-# Load saved sentiment model
+# Load trained model
 model = joblib.load("sentiment_model.pkl")
 
-# Preprocessing function
-def preprocess_text(text):
-    text = text.lower()
-    text = re.sub(r'[^\w\s]', '', text)
-    return text
+# Initialize EasyOCR reader
+reader = easyocr.Reader(['en'], gpu=False)
 
-# Extract text from uploaded image using only Pillow
-def extract_text_from_image(image):
-    # Optional: Convert to grayscale with Pillow for better OCR
-    gray_image = image.convert("L")  # "L" mode = grayscale
-    text = pytesseract.image_to_string(gray_image)
-    return text.strip()
+# App title
+st.title("🧠 Sentiment Analysis from Image")
 
-# Streamlit App UI
-st.title("🧠 Social Media Sentiment Classifier (Text from Image)")
-st.write("Upload an image with social media text, and get the sentiment (Positive / Negative).")
-
-uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
+# Upload an image
+uploaded_file = st.file_uploader("Upload an image containing text", type=["png", "jpg", "jpeg"])
 
 if uploaded_file is not None:
+    # Display image
     image = Image.open(uploaded_file)
     st.image(image, caption="Uploaded Image", use_column_width=True)
 
-    # Text extraction
-    with st.spinner("Extracting text..."):
-        text = extract_text_from_image(image)
+    # Button to extract and analyze text
+    if st.button("Analyze Sentiment"):
+        with st.spinner("Extracting text..."):
+            # Convert image to numpy array and extract text
+            result = reader.readtext(np.array(image), detail=0)
+            extracted_text = " ".join(result)
 
-    st.subheader("📝 Extracted Text")
-    st.write(text if text else "No text found.")
+        st.markdown("**Extracted Text:**")
+        st.write(extracted_text)
 
-    # Sentiment classification
-    if text:
-        preprocessed = preprocess_text(text)
-        sentiment = model.predict([preprocessed])[0]
-        st.subheader("🔍 Predicted Sentiment")
-        st.success(sentiment)
+        if extracted_text.strip() == "":
+            st.warning("No text found in the image.")
+        else:
+            # Preprocess and predict
+            cleaned_text = extracted_text.lower()
+            prediction = model.predict([cleaned_text])[0]
+
+            # Show result
+            if prediction == 0:
+                st.success("✅ The comment is **Non-Hateful**")
+            else:
+                st.error("🚨 The comment is **Hateful**")

@@ -1,11 +1,8 @@
 import streamlit as st
-import cv2
+from PIL import Image
 import pytesseract
-import numpy as np
 import re
 import joblib
-import tempfile
-from PIL import Image
 
 # Load saved sentiment model
 model = joblib.load("sentiment_model.pkl")
@@ -16,14 +13,14 @@ def preprocess_text(text):
     text = re.sub(r'[^\w\s]', '', text)
     return text
 
-# Extract text from uploaded image
+# Extract text from uploaded image using only Pillow
 def extract_text_from_image(image):
-    img = np.array(image.convert("RGB"))
-    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    text = pytesseract.image_to_string(gray)
+    # Optional: Convert to grayscale with Pillow for better OCR
+    gray_image = image.convert("L")  # "L" mode = grayscale
+    text = pytesseract.image_to_string(gray_image)
     return text.strip()
 
-# App UI
+# Streamlit App UI
 st.title("🧠 Social Media Sentiment Classifier (Text from Image)")
 st.write("Upload an image with social media text, and get the sentiment (Positive / Negative).")
 

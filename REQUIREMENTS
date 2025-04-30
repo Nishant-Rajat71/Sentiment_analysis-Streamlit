@@ -1,6 +1,9 @@
 streamlit
 scikit-learn
-joblib
-pillow
-easyocr
+pandas
 numpy
+matplotlib
+seaborn
+pytesseract
+opencv-python-headless
+joblib

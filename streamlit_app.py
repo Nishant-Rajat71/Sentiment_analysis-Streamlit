@@ -1,45 +1,34 @@
-import streamlit as st
-from PIL import Image
+# import streamlit as st
 import joblib
-import easyocr
-import numpy as np
+import os
+from ocr_utils import extract_text, clean_text
 
-# Load trained model
-model = joblib.load("sentiment_model.pkl")
+# Load model
+model = joblib.load("model/sentiment_model.pkl")
 
-# Initialize EasyOCR reader
-reader = easyocr.Reader(['en'], gpu=False)
+st.title("🧠 Social Media Image Sentiment Classifier")
+st.write("Upload an image with text, and we'll detect its sentiment!")
 
-# App title
-st.title("🧠 Sentiment Analysis from Image")
-
-# Upload an image
-uploaded_file = st.file_uploader("Upload an image containing text", type=["png", "jpg", "jpeg"])
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
 
 if uploaded_file is not None:
-    # Display image
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Image", use_column_width=True)
+    # Save uploaded image
+    img_path = f"temp_{uploaded_file.name}"
+    with open(img_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
 
-    # Button to extract and analyze text
-    if st.button("Analyze Sentiment"):
-        with st.spinner("Extracting text..."):
-            # Convert image to numpy array and extract text
-            result = reader.readtext(np.array(image), detail=0)
-            extracted_text = " ".join(result)
+    st.image(uploaded_file, caption='Uploaded Image', use_column_width=True)
 
-        st.markdown("**Extracted Text:**")
-        st.write(extracted_text)
+    # Extract and classify
+    text = extract_text(img_path)
+    st.subheader("📜 Extracted Text")
+    st.write(text)
 
-        if extracted_text.strip() == "":
-            st.warning("No text found in the image.")
-        else:
-            # Preprocess and predict
-            cleaned_text = extracted_text.lower()
-            prediction = model.predict([cleaned_text])[0]
+    if text:
+        clean = clean_text(text)
+        prediction = model.predict([clean])[0]
+        st.subheader("🔍 Sentiment")
+        st.success(f"**{prediction}**")
 
-            # Show result
-            if prediction == 0:
-                st.success("✅ The comment is **Non-Hateful**")
-            else:
-                st.error("🚨 The comment is **Hateful**")
+    # Cleanup
+    os.remove(img_path)
